@@ -1,12 +1,12 @@
-use std::{io::{BufReader, Read, Error, Seek, SeekFrom}, fs::File, mem::transmute};
+use std::{io::{BufReader, Read, Error, Seek, SeekFrom}, mem::transmute};
 
-pub struct BinaryReader {
-    reader: BufReader<File>,
+pub struct BinaryReader<R: Read + Seek> {
+    reader: BufReader<R>,
 }
 
-impl BinaryReader {
-    pub fn new(file: File) -> Self {
-        let reader = BufReader::new(file);
+impl<R: Read + Seek> BinaryReader<R> {
+    pub fn new(r: R) -> Self {
+        let reader = BufReader::new(r);
 
         Self {
             reader
