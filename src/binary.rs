@@ -1,4 +1,4 @@
-use std::{io::{BufReader, Read, Error, Seek, SeekFrom}, mem::transmute};
+use std::{io::{BufReader, Read, Error, Seek, SeekFrom, self}, mem::transmute};
 
 pub struct BinaryReader<R: Read + Seek> {
     reader: BufReader<R>,
@@ -80,12 +80,23 @@ impl<R: Read + Seek> BinaryReader<R> {
     }
 
     pub fn read_to_buf(&mut self, buf: &mut [u8]) -> Result<usize, Error> {
-        self.reader.read(buf)
+        let mut total_bytes_read = 0;
+        
+        loop {
+            let amount_read = self.reader.read(&mut buf[total_bytes_read..])?;
+
+            total_bytes_read += amount_read;
+
+            if total_bytes_read >= buf.len() || amount_read == 0 {
+                return Ok(total_bytes_read);
+            }
+        }
     }
 
     pub fn read_bytes(&mut self, num_bytes: usize) -> Result<Vec<u8>, Error> {
-        let mut vec: Vec<u8> = std::iter::repeat(0).take(num_bytes).collect();
-        self.reader.read(&mut vec)?;
+        let mut vec: Vec<u8> = Vec::with_capacity(num_bytes);
+        unsafe { vec.set_len(num_bytes) };
+        self.read_to_buf(&mut vec)?;
 
         Ok(vec)
     }
@@ -103,3 +114,31 @@ impl<R: Read + Seek> BinaryReader<R> {
         Ok(())
     }
 }
+
+/*pub struct MemStream<'a, T> {
+    data: &'a [T],
+    position: usize
+}
+
+impl<'a, T> MemStream<'a, T> {
+    pub fn new(data: &'a [T]) -> Self {
+        Self {
+            position: 0,
+            data
+        }
+    }
+}
+
+impl<T> Read for MemStream<'_, T> {
+    fn read(&mut self, buf: &mut [u8]) -> std::io::Result<usize> {
+        let num_bytes = if self.position + buf.len() > self.data.len() {
+            self.data.len()
+        } else {
+            buf.len()
+        };
+
+        //buf = &mut self.data[self.position + num_bytes];
+
+        Ok(num_bytes)
+    }
+}*/
